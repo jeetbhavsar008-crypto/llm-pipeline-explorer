@@ -1,0 +1,1655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LLM Pipeline Explorer — Text to Space</title>
+  <style>
+    /* -------------------------------------------------------------
+       THEME VARIABLES & COLOR PALETTE (Warm Editorial Aesthetic)
+    ------------------------------------------------------------- */
+    :root {
+      --bg: #fcfaf7;
+      --card-bg: #ffffff;
+      --card-border: #e8e3dc;
+      --text-main: #262422;
+      --text-muted: #6e6963;
+      --text-light: #948e85;
+      --accent: #c25e2e;
+      --accent-soft: #fbf0ea;
+      --accent-hover: #a84e24;
+      --highlight-border: #d6cdc3;
+      --tag-bg: #f3efe9;
+      --canvas-bg: #f7f4ed; /* Light mode 3D background */
+      --canvas-border: #e2dcd4;
+      --font-serif: "Newsreader", "Charter", "Georgia", Cambria, serif;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    }
+
+    [data-theme="dark"] {
+      --bg: #141416;
+      --card-bg: #1b1b1e;
+      --card-border: #2e2d33;
+      --text-main: #f0ede8;
+      --text-muted: #a49e95;
+      --text-light: #736d64;
+      --accent: #e07a4b;
+      --accent-soft: #2e211b;
+      --accent-hover: #f08c5e;
+      --highlight-border: #3d3b42;
+      --tag-bg: #26252a;
+      --canvas-bg: #101114;
+      --canvas-border: #28282d;
+    }
+
+    /* -------------------------------------------------------------
+       BASE LAYOUT & TYPOGRAPHY
+    ------------------------------------------------------------- */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: background-color 0.25s ease, color 0.25s ease;
+    }
+
+    .container {
+      max-width: 920px;
+      width: 100%;
+    }
+
+    /* Top Bar */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .tag-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background-color: var(--accent-soft);
+      border: 1px solid var(--card-border);
+      padding: 4px 12px;
+      border-radius: 9999px;
+    }
+
+    .theme-toggle-btn {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .theme-toggle-btn:hover {
+      border-color: var(--accent);
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: 2.8rem;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.025em;
+      margin-bottom: 12px;
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: var(--text-muted);
+      max-width: 680px;
+      margin: 0 auto;
+      line-height: 1.65;
+    }
+
+    /* Stepper Bar */
+    .pipeline-stepper {
+      display: flex;
+      justify-content: space-between;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 10px 18px;
+      margin-bottom: 32px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-muted);
+      overflow-x: auto;
+      gap: 12px;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .step-item.active {
+      color: var(--accent);
+    }
+
+    .step-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--tag-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+    }
+
+    .step-item.active .step-num {
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    /* Section Cards */
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 34px 30px;
+      margin-bottom: 32px;
+      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+    }
+
+    h2 {
+      font-family: var(--font-serif);
+      font-size: 1.65rem;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+
+    .card-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    /* Presets */
+    .preset-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .preset-btn {
+      background: var(--tag-bg);
+      color: var(--text-main);
+      border: 1px solid var(--card-border);
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .preset-btn:hover {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Inputs */
+    textarea, input[type="text"] {
+      width: 100%;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      color: var(--text-main);
+      background: var(--bg);
+      border: 1.5px solid var(--card-border);
+      border-radius: 12px;
+      padding: 13px 16px;
+      outline: none;
+      transition: border-color 0.15s;
+      line-height: 1.55;
+    }
+
+    textarea:focus, input[type="text"]:focus {
+      border-color: var(--accent);
+    }
+
+    /* Action Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background-color: var(--accent);
+      color: #ffffff;
+      padding: 11px 20px;
+      font-size: 13.5px;
+      font-weight: 600;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.15s, transform 0.1s;
+      margin-top: 12px;
+      user-select: none;
+    }
+
+    .btn:hover {
+      background-color: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    /* Subword Tokens Display */
+    .tokens-wrapper {
+      margin-top: 20px;
+      padding: 18px;
+      background: var(--bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+    }
+
+    .tokens-header {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .tokens-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .token-chip {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .token-chip.subword {
+      border: 1px dashed var(--accent);
+    }
+
+    .token-sub {
+      font-size: 9.5px;
+      font-weight: 500;
+      opacity: 0.65;
+      margin-top: 2px;
+    }
+
+    /* -------------------------------------------------------------
+       LIGHT MODE 3D CANVAS & CONTROLS TOOLBAR
+    ------------------------------------------------------------- */
+    .canvas-card-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .canvas-controls-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .canvas-mini-btn {
+      background: var(--tag-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 5px 12px;
+      border-radius: 8px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s;
+    }
+
+    .canvas-mini-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .canvas-mini-btn.active {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .canvas-container {
+      position: relative;
+      width: 100%;
+      height: 500px;
+      background: var(--canvas-bg);
+      border: 1px solid var(--canvas-border);
+      border-radius: 16px;
+      overflow: hidden;
+      cursor: grab;
+      box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.03);
+    }
+
+    .canvas-container:active {
+      cursor: grabbing;
+    }
+
+    #spaceCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Floating HUD Overlays in Light Mode */
+    .hud-badge {
+      position: absolute;
+      top: 14px;
+      left: 16px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(8px);
+      padding: 6px 12px;
+      border-radius: 8px;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    [data-theme="dark"] .hud-badge {
+      color: #e2e8f0;
+      background: rgba(15, 23, 42, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .hud-legend {
+      position: absolute;
+      bottom: 14px;
+      left: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(8px);
+      padding: 6px 12px;
+      border-radius: 8px;
+      pointer-events: none;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    [data-theme="dark"] .hud-legend {
+      background: rgba(15, 23, 42, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .legend-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 4px;
+    }
+
+    /* Floating Tooltip */
+    #canvas-tooltip {
+      position: absolute;
+      display: none;
+      pointer-events: none;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      color: #1e293b;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 12px;
+      max-width: 290px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      backdrop-filter: blur(8px);
+      z-index: 20;
+      line-height: 1.5;
+    }
+
+    [data-theme="dark"] #canvas-tooltip {
+      background: rgba(15, 23, 42, 0.95);
+      border-color: rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Interactive Distance Ruler Banner */
+    .ruler-banner {
+      margin-top: 16px;
+      padding: 14px 18px;
+      border-radius: 12px;
+      background: var(--tag-bg);
+      border: 1px solid var(--card-border);
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .ruler-banner strong {
+      color: var(--accent);
+    }
+
+    /* Nearest Pairs Grid */
+    .pairs-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    @media (min-width: 640px) {
+      .pairs-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .pair-card {
+      background: var(--bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 13px;
+    }
+
+    .pair-score {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .pair-sentence {
+      color: var(--text-main);
+      font-style: italic;
+      margin-bottom: 4px;
+    }
+
+    /* Custom Result Card */
+    .custom-result-card {
+      margin-top: 16px;
+      padding: 18px 20px;
+      border-radius: 14px;
+      background: var(--accent-soft);
+      border: 1px solid var(--accent);
+      font-size: 14px;
+      line-height: 1.6;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- Top Bar -->
+    <div class="top-bar">
+      <div class="tag-badge">
+        <span>✦</span>
+        <span>Interactive LLM Architecture</span>
+      </div>
+
+      <button id="theme-btn" class="theme-toggle-btn" onclick="toggleTheme()">
+        <span id="theme-icon">🌙</span>
+        <span id="theme-name">Dark Mode</span>
+      </button>
+    </div>
+
+    <!-- Main Header -->
+    <header>
+      <h1>LLM Pipeline Explorer</h1>
+      <p class="subtitle">
+        An interactive laboratory tracing natural language as it converts into discrete subword tokens, dense vector coordinates, and points in a rotatable 3D semantic space with dynamic axes and measurement probes.
+      </p>
+    </header>
+
+    <!-- Stepper Bar -->
+    <div class="pipeline-stepper">
+      <div class="step-item active">
+        <span class="step-num">1</span>
+        <span>Subword Tokenization</span>
+      </div>
+      <div class="step-item active">
+        <span class="step-num">2</span>
+        <span>Vector Embeddings</span>
+      </div>
+      <div class="step-item active">
+        <span class="step-num">3</span>
+        <span>3D Coordinate Axes (X, Y, Z)</span>
+      </div>
+      <div class="step-item active">
+        <span class="step-num">4</span>
+        <span>Cosine Clustering & Laser Ruler</span>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- SECTION 1: VOCABULARY & SUBWORDS           -->
+    <!-- ========================================== -->
+    <div class="card">
+      <h2>1. Teaching the Computer Words</h2>
+      <p class="card-desc">
+        A language model learns vocabulary from training corpora. When words are rare or carry common endings, it breaks them down into subwords (like <code>play</code> + <code>##ing</code> or <code>orbit</code> + <code>##s</code>).
+      </p>
+
+      <div class="preset-row">
+        <span>Sample training text:</span>
+        <button class="preset-btn" onclick="loadCorpusPreset('nature')">Animals & Nature</button>
+        <button class="preset-btn" onclick="loadCorpusPreset('space')">Space & Astronomy</button>
+        <button class="preset-btn" onclick="loadCorpusPreset('tech')">Coding & Intelligence</button>
+      </div>
+
+      <textarea id="corpus-input" rows="3">The playful dog ran through the park. Dogs love playing outside in the sunny park. The brave astronaut explored the distant solar orbit. Rockets launch into the deep orbit of stars.</textarea>
+
+      <button class="btn" onclick="buildVocabulary()">
+        <span>Process Vocabulary</span>
+        <span>→</span>
+      </button>
+
+      <!-- Tokenizer Test Field -->
+      <div class="tokens-wrapper">
+        <div class="tokens-header">
+          <span>Test Tokenizer on a Sentence:</span>
+          <span id="token-count-pill">0 tokens</span>
+        </div>
+        
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+          <input type="text" id="sentence-input" value="The playful dog was playing in orbit.">
+          <button class="btn" style="margin-top: 0; white-space: nowrap;" onclick="tokenizeSentence()">Tokenize</button>
+        </div>
+
+        <div class="tokens-list" id="tokens-display">
+          <!-- Token chips injected here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- SECTION 2: 3D SEMANTIC EMBEDDING SPACE     -->
+    <!-- ========================================== -->
+    <div class="card">
+      <div class="canvas-card-header">
+        <div>
+          <h2>2. 3D Semantic Space with X, Y, Z Coordinate Axes</h2>
+          <p class="card-desc" style="margin-bottom: 0;">
+            Sentences mapped into a crisp 3D coordinate map with labeled axes, interactive distance measurement, and cluster bounds.
+          </p>
+        </div>
+        
+        <!-- Controls Toolbar -->
+        <div class="canvas-controls-bar">
+          <button class="canvas-mini-btn active" onclick="toggleAxes()" id="axes-btn">📏 Axes: ON</button>
+          <button class="canvas-mini-btn active" onclick="toggleClusters()" id="clusters-btn">☁️ Cluster Bounds</button>
+          <button class="canvas-mini-btn" onclick="toggleView2D()" id="view2d-btn">📐 View: 3D</button>
+          <button class="canvas-mini-btn" onclick="toggleAutoRotate()" id="autorotate-btn">⏸ Pause Spin</button>
+          <button class="canvas-mini-btn" onclick="reset3DView()">↺ Reset</button>
+        </div>
+      </div>
+
+      <!-- Plotted Sentences Text Area -->
+      <textarea id="sentences-input" rows="4">The energetic dog ran across the open park.
+Puppies love chasing balls and playing outside.
+Astronauts journey into the deep starry cosmos.
+Rockets orbit Earth and explore distant galaxies.
+Neural networks learn representations from tokenized text.
+Deep learning models optimize attention matrices.</textarea>
+
+      <button class="btn" onclick="plotSentencesInSpace()">
+        <span>Recompute & Plot in 3D Space</span>
+        <span>✦</span>
+      </button>
+
+      <!-- 3D Interactive Canvas -->
+      <div class="canvas-container" id="canvas-wrap">
+        <canvas id="spaceCanvas"></canvas>
+        
+        <!-- Live HUD Overlay -->
+        <div class="hud-badge">
+          <span>🎮</span>
+          <span>Click & Drag to rotate • Scroll to zoom • Click 2 nodes to measure</span>
+        </div>
+
+        <!-- Category Color Legend -->
+        <div class="hud-legend">
+          <div style="color: #059669;"><span class="legend-dot" style="background:#10b981;"></span>Animals</div>
+          <div style="color: #7c3aed;"><span class="legend-dot" style="background:#8b5cf6;"></span>Space</div>
+          <div style="color: #ea580c;"><span class="legend-dot" style="background:#f97316;"></span>AI & Tech</div>
+          <div style="color: #d97706;"><span class="legend-dot" style="background:#f59e0b;"></span>Custom (You)</div>
+          <div style="color: #e11d48; margin-left:6px;"><span class="legend-dot" style="background:#e11d48;"></span>X Axis</div>
+          <div style="color: #059669;"><span class="legend-dot" style="background:#059669;"></span>Y Axis</div>
+          <div style="color: #0284c7;"><span class="legend-dot" style="background:#0284c7;"></span>Z Axis</div>
+        </div>
+
+        <!-- Floating Tooltip -->
+        <div id="canvas-tooltip"></div>
+      </div>
+
+      <!-- Laser Distance Ruler Banner -->
+      <div class="ruler-banner" id="ruler-banner">
+        <div>
+          <span>📐 <strong>Semantic Laser Ruler:</strong> Click any sphere, then click another sphere to measure their vector distance & cosine similarity!</span>
+        </div>
+        <button class="canvas-mini-btn" onclick="clearRulerSelection()">Clear Selection</button>
+      </div>
+
+      <!-- Nearest Pairs Breakdown -->
+      <div style="margin-top: 28px;">
+        <h3 style="font-family: var(--font-serif); font-size: 1.25rem; margin-bottom: 6px;">Most Similar Sentence Pairs</h3>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+          Calculated via <strong>Cosine Proximity</strong> (1.0 = identical direction in latent space).
+        </p>
+        <div class="pairs-grid" id="pairs-display">
+          <!-- Top pair cards rendered here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- SECTION 3: ADD CUSTOM SENTENCE             -->
+    <!-- ========================================== -->
+    <div class="card">
+      <h2>3. Add Your Own Sentence to the Map</h2>
+      <p class="card-desc">
+        Type any sentence to encode it into a 16-dimensional vector and project it as a glowing golden node in the 3D universe.
+      </p>
+
+      <div style="display: flex; gap: 8px;">
+        <input type="text" id="custom-sentence-input" placeholder="e.g. A cute puppy was barking happily near the trees.">
+        <button class="btn" style="margin-top: 0; white-space: nowrap;" onclick="addCustomSentence()">Add to Map</button>
+      </div>
+
+      <div id="custom-result-card" class="custom-result-card">
+        <!-- Results injected here -->
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ========================================== -->
+  <!-- JAVASCRIPT LOGIC                           -->
+  <!-- ========================================== -->
+  <script>
+    // WHAT THIS DOES: Handles toggling between light and dark themes and updates
+    // the UI buttons and canvas palette accordingly.
+    var isDarkMode = false;
+    function toggleTheme() {
+      isDarkMode = !isDarkMode;
+      if (isDarkMode) {
+        document.documentElement.setAttribute("data-theme", "dark");
+        document.getElementById("theme-icon").textContent = "☀️";
+        document.getElementById("theme-name").textContent = "Light Mode";
+      } else {
+        document.documentElement.removeAttribute("data-theme");
+        document.getElementById("theme-icon").textContent = "🌙";
+        document.getElementById("theme-name").textContent = "Dark Mode";
+      }
+    }
+
+    // -------------------------------------------------------------
+    // VOCABULARY & SUBWORD TOKENIZER LOGIC
+    // -------------------------------------------------------------
+    var activeVocab = ["the", "dog", "ran", "park", "love", "play", "sunny", "astronaut", "orbit", "rocket", "star", "explore"];
+    var KNOWN_SUFFIXES = ["ing", "ed", "es", "s", "er", "ly", "y", "ful", "less"];
+
+    var PRESET_CORPORA = {
+      nature: "The playful dog ran through the park. Dogs love playing outside in the sunny park. Wolves and puppies run together in the green grass.",
+      space: "The brave astronaut explored the distant solar orbit. Rockets launch into the deep orbit of stars. Telescopes view planets in the galaxy.",
+      tech: "Neural networks process language using embeddings and attention. Machine learning models transform text into tokens and numbers."
+    };
+
+    // WHAT THIS DOES: Loads preset text into the training box and updates the vocabulary.
+    function loadCorpusPreset(key) {
+      if (PRESET_CORPORA[key]) {
+        document.getElementById("corpus-input").value = PRESET_CORPORA[key];
+        buildVocabulary();
+      }
+    }
+
+    // WHAT THIS DOES: Scans the corpus text, extracts unique words, and sets up active vocabulary.
+    function buildVocabulary() {
+      var text = document.getElementById("corpus-input").value;
+      var clean = text.toLowerCase().replace(/([.,!?'"()])/g, " $1 ");
+      var words = clean.split(/\s+/).filter(function(w) { return w.length > 0; });
+
+      var counts = {};
+      for (var i = 0; i < words.length; i++) {
+        counts[words[i]] = (counts[words[i]] || 0) + 1;
+      }
+      activeVocab = Object.keys(counts);
+      tokenizeSentence();
+    }
+
+    // WHAT THIS DOES: Splits words into base word + subword suffix if the full word is unknown.
+    function subwordSplit(word) {
+      var lower = word.toLowerCase();
+      if (activeVocab.indexOf(lower) !== -1) {
+        return [{ text: word, isSubword: false }];
+      }
+
+      for (var s = 0; s < KNOWN_SUFFIXES.length; s++) {
+        var suf = KNOWN_SUFFIXES[s];
+        if (lower.length > suf.length + 2 && lower.endsWith(suf)) {
+          var root = lower.slice(0, lower.length - suf.length);
+          if (activeVocab.indexOf(root) !== -1) {
+            return [
+              { text: root, isSubword: false },
+              { text: "##" + suf, isSubword: true }
+            ];
+          }
+        }
+      }
+
+      return [{ text: word, isSubword: false }];
+    }
+
+    // WHAT THIS DOES: Produces a deterministic pastel color for a given token string.
+    function getChipColor(str) {
+      var hash = 0;
+      for (var i = 0; i < str.length; i++) {
+        hash = (hash << 5) - hash + str.charCodeAt(i);
+        hash = hash & hash;
+      }
+      var hue = Math.abs(hash * 137.5) % 360;
+      return "hsl(" + hue + ", 75%, 86%)";
+    }
+
+    // WHAT THIS DOES: Tokenizes the test sentence and draws colored token chips on screen.
+    function tokenizeSentence() {
+      var input = document.getElementById("sentence-input").value;
+      var clean = input.replace(/([.,!?'"()])/g, " $1 ");
+      var rawWords = clean.split(/\s+/).filter(function(w) { return w.length > 0; });
+
+      var tokenPieces = [];
+      for (var i = 0; i < rawWords.length; i++) {
+        var pieces = subwordSplit(rawWords[i]);
+        for (var p = 0; p < pieces.length; p++) {
+          tokenPieces.push(pieces[p]);
+        }
+      }
+
+      var display = document.getElementById("tokens-display");
+      display.innerHTML = "";
+
+      for (var t = 0; t < tokenPieces.length; t++) {
+        var piece = tokenPieces[t];
+        var chip = document.createElement("div");
+        chip.className = "token-chip" + (piece.isSubword ? " subword" : "");
+        chip.style.backgroundColor = getChipColor(piece.text);
+
+        var id = 0;
+        for (var c = 0; c < piece.text.length; c++) {
+          id = (id << 5) - id + piece.text.charCodeAt(c);
+          id = id & id;
+        }
+        var displayId = Math.abs(id % 45000) + 100;
+
+        chip.innerHTML = "<span>" + piece.text + "</span><span class='token-sub'>#" + displayId + "</span>";
+        display.appendChild(chip);
+      }
+
+      document.getElementById("token-count-pill").innerText = tokenPieces.length + " tokens";
+    }
+
+    // -------------------------------------------------------------
+    // HIGH-ACCURACY VECTOR EMBEDDINGS & COSINE SIMILARITY
+    // -------------------------------------------------------------
+
+    // WHAT THIS DOES: Converts text into a normalized multi-dimensional vector
+    // using semantic keyword weights and character n-gram hashing for realistic clustering.
+    function computeSentenceVector(sentence) {
+      var dims = 16;
+      var vec = new Array(dims);
+      for (var d = 0; d < dims; d++) vec[d] = 0;
+
+      var lower = sentence.toLowerCase();
+
+      var natureWords = ["dog", "pupp", "bark", "park", "chase", "play", "grass", "outside", "ball", "energetic"];
+      var spaceWords = ["astronaut", "star", "orbit", "rocket", "cosmos", "earth", "galaxy", "solar", "distant"];
+      var techWords = ["neural", "network", "matrix", "matrices", "model", "token", "attention", "deep", "learning", "text"];
+
+      for (var n = 0; n < natureWords.length; n++) {
+        if (lower.indexOf(natureWords[n]) !== -1) {
+          vec[0] += 2.8; vec[1] += 2.2; vec[2] -= 1.5;
+        }
+      }
+      for (var s = 0; s < spaceWords.length; s++) {
+        if (lower.indexOf(spaceWords[s]) !== -1) {
+          vec[3] += 3.0; vec[4] -= 2.0; vec[5] += 2.5;
+        }
+      }
+      for (var t = 0; t < techWords.length; t++) {
+        if (lower.indexOf(techWords[t]) !== -1) {
+          vec[6] += 2.5; vec[7] += 3.0; vec[8] -= 2.2;
+        }
+      }
+
+      var words = lower.replace(/[^a-z0-9 ]/g, "").split(/\s+/).filter(Boolean);
+      for (var w = 0; w < words.length; w++) {
+        var word = words[w];
+        for (var c = 0; c < word.length - 1; c++) {
+          var pair = word.charCodeAt(c) * 31 + word.charCodeAt(c + 1);
+          vec[pair % dims] += 0.4;
+        }
+      }
+
+      var norm = 0;
+      for (var i = 0; i < dims; i++) norm += vec[i] * vec[i];
+      norm = Math.sqrt(norm);
+      if (norm > 0) {
+        for (var j = 0; j < dims; j++) vec[j] /= norm;
+      }
+      return vec;
+    }
+
+    // WHAT THIS DOES: Calculates the Cosine Similarity between two vectors.
+    function cosineSimilarity(vecA, vecB) {
+      var dot = 0;
+      for (var i = 0; i < vecA.length; i++) {
+        dot += vecA[i] * vecB[i];
+      }
+      return dot;
+    }
+
+    // -------------------------------------------------------------
+    // HIGH-DPI RETINA 3D ENGINE & SMOOTH MOTION PHYSICS
+    // -------------------------------------------------------------
+    var plottedPoints = [];
+    var rotX = 0.35;
+    var rotY = 0.75;
+    var velX = 0;
+    var velY = 0;
+    var isDragging = false;
+    var lastMouseX = 0;
+    var lastMouseY = 0;
+    var cameraZoom = 1.0;
+    var autoRotate = true;
+    var hoveredIndex = -1;
+
+    // Feature Toggles
+    var showAxes = true;
+    var showClusters = true;
+    var isTopDown2D = false;
+    var selectedNodeA = null;
+    var selectedNodeB = null;
+
+    // WHAT THIS DOES: Toggles the display of X, Y, Z coordinate axes on and off.
+    function toggleAxes() {
+      showAxes = !showAxes;
+      var btn = document.getElementById("axes-btn");
+      btn.innerText = showAxes ? "📏 Axes: ON" : "📏 Axes: OFF";
+      btn.classList.toggle("active", showAxes);
+    }
+
+    // WHAT THIS DOES: Toggles translucent boundary cloud rings around semantic clusters.
+    function toggleClusters() {
+      showClusters = !showClusters;
+      var btn = document.getElementById("clusters-btn");
+      btn.classList.toggle("active", showClusters);
+    }
+
+    // WHAT THIS DOES: Toggles between standard perspective 3D and a clean top-down 2D plane.
+    function toggleView2D() {
+      isTopDown2D = !isTopDown2D;
+      var btn = document.getElementById("view2d-btn");
+      if (isTopDown2D) {
+        rotX = 1.57;
+        rotY = 0;
+        velX = 0;
+        velY = 0;
+        autoRotate = false;
+        btn.innerText = "📐 View: 2D Top";
+        btn.classList.add("active");
+        document.getElementById("autorotate-btn").innerText = "▶ Resume Spin";
+      } else {
+        rotX = 0.35;
+        rotY = 0.75;
+        autoRotate = true;
+        btn.innerText = "📐 View: 3D";
+        btn.classList.remove("active");
+        document.getElementById("autorotate-btn").innerText = "⏸ Pause Spin";
+      }
+    }
+
+    // WHAT THIS DOES: Resets the camera orientation and zoom back to default.
+    function reset3DView() {
+      rotX = 0.35;
+      rotY = 0.75;
+      velX = 0;
+      velY = 0;
+      cameraZoom = 1.0;
+      isTopDown2D = false;
+      document.getElementById("view2d-btn").innerText = "📐 View: 3D";
+      document.getElementById("view2d-btn").classList.remove("active");
+    }
+
+    // WHAT THIS DOES: Toggles the ambient idle 3D rotation on and off.
+    function toggleAutoRotate() {
+      autoRotate = !autoRotate;
+      var btn = document.getElementById("autorotate-btn");
+      btn.innerText = autoRotate ? "⏸ Pause Spin" : "▶ Resume Spin";
+    }
+
+    // WHAT THIS DOES: Clears the two measured nodes in the laser ruler.
+    function clearRulerSelection() {
+      selectedNodeA = null;
+      selectedNodeB = null;
+      var banner = document.getElementById("ruler-banner");
+      banner.innerHTML = "<div><span>📐 <strong>Semantic Laser Ruler:</strong> Click any sphere, then click another sphere to measure their vector distance & cosine similarity!</span></div>" +
+                         "<button class='canvas-mini-btn' onclick='clearRulerSelection()'>Clear Selection</button>";
+    }
+
+    // WHAT THIS DOES: Computes 3D coordinates for all sentences and triggers nearest-pairs lookup.
+    function plotSentencesInSpace() {
+      var raw = document.getElementById("sentences-input").value;
+      var lines = raw.split("\n").filter(function(l) { return l.trim().length > 0; });
+
+      plottedPoints = [];
+
+      for (var i = 0; i < lines.length; i++) {
+        var sentence = lines[i].trim();
+        var vec = computeSentenceVector(sentence);
+
+        var px = (vec[0] - vec[3] + vec[6] * 0.5) * 1.8;
+        var py = (vec[1] - vec[4] + vec[7] * 0.5) * 1.6;
+        var pz = (vec[2] + vec[5] - vec[8]) * 1.7;
+
+        var lower = sentence.toLowerCase();
+        var color = "#0284c7"; // Blue
+        var category = "General";
+
+        if (lower.indexOf("dog") !== -1 || lower.indexOf("pupp") !== -1 || lower.indexOf("park") !== -1) {
+          color = "#059669"; // Emerald
+          category = "Nature & Animals";
+        } else if (lower.indexOf("astro") !== -1 || lower.indexOf("orbit") !== -1 || lower.indexOf("rocket") !== -1 || lower.indexOf("cosmos") !== -1) {
+          color = "#7c3aed"; // Violet / Purple
+          category = "Space & Universe";
+        } else if (lower.indexOf("network") !== -1 || lower.indexOf("model") !== -1 || lower.indexOf("attention") !== -1) {
+          color = "#ea580c"; // Orange / Coral
+          category = "AI & Technology";
+        }
+
+        plottedPoints.push({
+          id: i,
+          text: sentence,
+          vec: vec,
+          x: px,
+          y: py,
+          z: pz,
+          color: color,
+          category: category,
+          isCustom: false
+        });
+      }
+
+      findAndDisplayTopPairs();
+    }
+
+    // WHAT THIS DOES: Finds sentence pairs with the highest cosine similarities
+    // and displays them inside the similarity cards.
+    function findAndDisplayTopPairs() {
+      var pairs = [];
+      for (var i = 0; i < plottedPoints.length; i++) {
+        for (var j = i + 1; j < plottedPoints.length; j++) {
+          var sim = cosineSimilarity(plottedPoints[i].vec, plottedPoints[j].vec);
+          pairs.push({
+            a: plottedPoints[i].text,
+            b: plottedPoints[j].text,
+            score: sim
+          });
+        }
+      }
+
+      pairs.sort(function(p1, p2) { return p2.score - p1.score; });
+
+      var display = document.getElementById("pairs-display");
+      display.innerHTML = "";
+
+      var topPairs = pairs.slice(0, 4);
+      for (var k = 0; k < topPairs.length; k++) {
+        var p = topPairs[k];
+        var card = document.createElement("div");
+        card.className = "pair-card";
+        var pct = Math.round(p.score * 100);
+        card.innerHTML = "<div class='pair-score'>Cosine Similarity: " + p.score.toFixed(3) + " (" + pct + "% proximity)</div>" +
+                         "<div class='pair-sentence'>\"" + p.a + "\"</div>" +
+                         "<div class='pair-sentence' style='color: var(--text-muted);'>↔ \"" + p.b + "\"</div>";
+        display.appendChild(card);
+      }
+    }
+
+    // WHAT THIS DOES: Encodes a user-entered sentence, projects it into 3D,
+    // and adds it to the map as a highlighted glowing node.
+    function addCustomSentence() {
+      var input = document.getElementById("custom-sentence-input").value.trim();
+      if (!input) return;
+
+      var vec = computeSentenceVector(input);
+      var px = (vec[0] - vec[3] + vec[6] * 0.5) * 1.8;
+      var py = (vec[1] - vec[4] + vec[7] * 0.5) * 1.6;
+      var pz = (vec[2] + vec[5] - vec[8]) * 1.7;
+
+      var bestMatch = null;
+      var highestSim = -1;
+
+      for (var i = 0; i < plottedPoints.length; i++) {
+        var sim = cosineSimilarity(vec, plottedPoints[i].vec);
+        if (sim > highestSim) {
+          highestSim = sim;
+          bestMatch = plottedPoints[i];
+        }
+      }
+
+      plottedPoints.push({
+        id: plottedPoints.length,
+        text: input,
+        vec: vec,
+        x: px,
+        y: py,
+        z: pz,
+        color: "#d97706", // Warm amber
+        category: "Custom Input",
+        isCustom: true
+      });
+
+      var resultCard = document.getElementById("custom-result-card");
+      resultCard.style.display = "block";
+      var pct = Math.round(highestSim * 100);
+      resultCard.innerHTML = "<strong>🎯 Custom Sentence Embedded Successfully:</strong><br>" +
+                             "Closest Match: <em>\"" + (bestMatch ? bestMatch.text : "") + "\"</em><br>" +
+                             "<strong>Cosine Similarity:</strong> " + highestSim.toFixed(3) + " (" + pct + "% alignment in semantic space).";
+    }
+
+    // -------------------------------------------------------------
+    // HIGH-DPI RETINA RENDERER (LIGHT-MODE FIRST PALETTE)
+    // -------------------------------------------------------------
+
+    // WHAT THIS DOES: Transforms 3D coordinates (X, Y, Z) into 2D canvas coordinates
+    // applying camera pitch, yaw, and perspective depth scaling.
+    function project3D(x, y, z, cx, cy) {
+      var cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+      var x1 = x * cosY + z * sinY;
+      var z1 = -x * sinY + z * cosY;
+
+      var cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+      var y2 = y * cosX - z1 * sinX;
+      var z2 = y * sinX + z1 * cosX;
+
+      var fov = 460 * cameraZoom;
+      var distance = fov / (fov + z2 + 350);
+
+      return {
+        x: cx + x1 * distance,
+        y: cy + y2 * distance,
+        depth: z2,
+        scale: distance
+      };
+    }
+
+    // WHAT THIS DOES: Draws the X, Y, and Z 3D coordinate axes in crisp, high-contrast
+    // colors designed for a light background.
+    function drawXYZCoordinateAxes(ctx, cx, cy) {
+      if (!showAxes) return;
+
+      var axisLength = 175;
+      var origin = project3D(0, 0, 0, cx, cy);
+
+      // +X Axis (Rose / Red)
+      var posX = project3D(axisLength, 0, 0, cx, cy);
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = isDarkMode ? "#f43f5e" : "#e11d48";
+      ctx.beginPath();
+      ctx.moveTo(origin.x, origin.y);
+      ctx.lineTo(posX.x, posX.y);
+      ctx.stroke();
+
+      // +Y Axis (Emerald Green - Vertical)
+      var posY = project3D(0, -axisLength, 0, cx, cy);
+      ctx.strokeStyle = isDarkMode ? "#10b981" : "#059669";
+      ctx.beginPath();
+      ctx.moveTo(origin.x, origin.y);
+      ctx.lineTo(posY.x, posY.y);
+      ctx.stroke();
+
+      // +Z Axis (Sky / Cyan Blue - Depth)
+      var posZ = project3D(0, 0, axisLength, cx, cy);
+      ctx.strokeStyle = isDarkMode ? "#06b6d4" : "#0284c7";
+      ctx.beginPath();
+      ctx.moveTo(origin.x, origin.y);
+      ctx.lineTo(posZ.x, posZ.y);
+      ctx.stroke();
+
+      // Axis Labels (crisp with white outline for light mode)
+      ctx.font = "bold 12px -apple-system, sans-serif";
+      ctx.shadowColor = isDarkMode ? "rgba(0,0,0,0.8)" : "rgba(255,255,255,0.95)";
+      ctx.shadowBlur = 4;
+
+      ctx.fillStyle = isDarkMode ? "#f43f5e" : "#be123c";
+      ctx.fillText("+X (Dim 1)", posX.x + 8, posX.y + 4);
+
+      ctx.fillStyle = isDarkMode ? "#10b981" : "#047857";
+      ctx.fillText("+Y (Dim 2)", posY.x + 8, posY.y + 4);
+
+      ctx.fillStyle = isDarkMode ? "#06b6d4" : "#0369a1";
+      ctx.fillText("+Z (Dim 3)", posZ.x + 8, posZ.y + 4);
+
+      // Central Origin (0,0,0)
+      ctx.beginPath();
+      ctx.arc(origin.x, origin.y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = isDarkMode ? "#ffffff" : "#1e293b";
+      ctx.fill();
+      ctx.font = "10px monospace";
+      ctx.fillStyle = isDarkMode ? "rgba(255,255,255,0.7)" : "rgba(30,41,59,0.7)";
+      ctx.fillText("(0, 0, 0)", origin.x + 6, origin.y - 6);
+      ctx.shadowBlur = 0;
+    }
+
+    // WHAT THIS DOES: Draws the mini 3D Orientation Gizmo in the top-right corner.
+    function drawOrientationGizmo(ctx, w) {
+      var gx = w - 46;
+      var gy = 46;
+      var glen = 26;
+
+      ctx.beginPath();
+      ctx.arc(gx, gy, 32, 0, Math.PI * 2);
+      ctx.fillStyle = isDarkMode ? "rgba(15, 23, 42, 0.75)" : "rgba(255, 255, 255, 0.88)";
+      ctx.fill();
+      ctx.strokeStyle = isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.1)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      var cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+      var cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+
+      // Mini X
+      var xx = glen * cosY;
+      var xy = -glen * sinY * sinX;
+      ctx.beginPath();
+      ctx.moveTo(gx, gy);
+      ctx.lineTo(gx + xx, gy + xy);
+      ctx.strokeStyle = isDarkMode ? "#f43f5e" : "#e11d48";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = isDarkMode ? "#f43f5e" : "#e11d48";
+      ctx.font = "bold 9px monospace";
+      ctx.fillText("X", gx + xx + 3, gy + xy + 3);
+
+      // Mini Y
+      var yx = 0;
+      var yy = -glen * cosX;
+      ctx.beginPath();
+      ctx.moveTo(gx, gy);
+      ctx.lineTo(gx + yx, gy + yy);
+      ctx.strokeStyle = isDarkMode ? "#10b981" : "#059669";
+      ctx.stroke();
+      ctx.fillStyle = isDarkMode ? "#10b981" : "#059669";
+      ctx.fillText("Y", gx + yx + 3, gy + yy + 3);
+
+      // Mini Z
+      var zx = glen * sinY;
+      var zy = glen * cosY * sinX;
+      ctx.beginPath();
+      ctx.moveTo(gx, gy);
+      ctx.lineTo(gx + zx, gy + zy);
+      ctx.strokeStyle = isDarkMode ? "#06b6d4" : "#0284c7";
+      ctx.stroke();
+      ctx.fillStyle = isDarkMode ? "#06b6d4" : "#0284c7";
+      ctx.fillText("Z", gx + zx + 3, gy + zy + 3);
+    }
+
+    // WHAT THIS DOES: The main render function. It configures high-DPI resolution
+    // to eliminate blurriness, draws the 3D X/Y/Z coordinate axes, floor grid,
+    // cluster boundary clouds, laser ruler measurements, and 3D spheres in light mode.
+    function draw3DSpace() {
+      var canvas = document.getElementById("spaceCanvas");
+      var wrap = document.getElementById("canvas-wrap");
+      if (!canvas || !wrap) return;
+
+      var rect = wrap.getBoundingClientRect();
+      var dpr = window.devicePixelRatio || 1;
+
+      if (canvas.width !== Math.floor(rect.width * dpr) || canvas.height !== Math.floor(rect.height * dpr)) {
+        canvas.width = Math.floor(rect.width * dpr);
+        canvas.height = Math.floor(rect.height * dpr);
+      }
+
+      var ctx = canvas.getContext("2d");
+      ctx.save();
+      ctx.scale(dpr, dpr);
+
+      var w = rect.width;
+      var h = rect.height;
+      var cx = w / 2;
+      var cy = h / 2 + 10;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Perspective Ground Grid (Isometric Floor Plane for Light Mode)
+      var floorY = 135;
+      var gridSize = 170;
+      var gridSteps = 6;
+      var step = (gridSize * 2) / gridSteps;
+
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = isDarkMode ? "rgba(255, 255, 255, 0.05)" : "rgba(38, 36, 34, 0.08)";
+
+      for (var gx = -gridSize; gx <= gridSize; gx += step) {
+        var pStart = project3D(gx, floorY, -gridSize, cx, cy);
+        var pEnd = project3D(gx, floorY, gridSize, cx, cy);
+        ctx.beginPath();
+        ctx.moveTo(pStart.x, pStart.y);
+        ctx.lineTo(pEnd.x, pEnd.y);
+        ctx.stroke();
+      }
+
+      for (var gz = -gridSize; gz <= gridSize; gz += step) {
+        var p1 = project3D(-gridSize, floorY, gz, cx, cy);
+        var p2 = project3D(gridSize, floorY, gz, cx, cy);
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+      }
+
+      // Draw the 3D X, Y, Z Coordinate Axes
+      drawXYZCoordinateAxes(ctx, cx, cy);
+
+      // Project each sentence point
+      var projectedNodes = [];
+      for (var i = 0; i < plottedPoints.length; i++) {
+        var pt = plottedPoints[i];
+        var proj = project3D(pt.x * 90, pt.y * 75, pt.z * 90, cx, cy);
+        var floorProj = project3D(pt.x * 90, floorY, pt.z * 90, cx, cy);
+
+        projectedNodes.push({
+          index: i,
+          orig: pt,
+          x: proj.x,
+          y: proj.y,
+          floorX: floorProj.x,
+          floorY: floorProj.y,
+          depth: proj.depth,
+          scale: proj.scale
+        });
+      }
+
+      // Draw Cluster Boundary Clouds in soft pastel tints
+      if (showClusters) {
+        var clusters = {};
+        for (var c = 0; c < projectedNodes.length; c++) {
+          var node = projectedNodes[c];
+          var cat = node.orig.category;
+          if (!clusters[cat]) clusters[cat] = [];
+          clusters[cat].push(node);
+        }
+
+        for (var catName in clusters) {
+          var group = clusters[catName];
+          if (group.length >= 2) {
+            var avgX = 0, avgY = 0;
+            for (var g = 0; g < group.length; g++) {
+              avgX += group[g].x; avgY += group[g].y;
+            }
+            avgX /= group.length; avgY /= group.length;
+
+            var maxR = 0;
+            for (var m = 0; m < group.length; m++) {
+              var d = Math.hypot(group[m].x - avgX, group[m].y - avgY);
+              if (d > maxR) maxR = d;
+            }
+            maxR += 24;
+
+            ctx.beginPath();
+            ctx.ellipse(avgX, avgY, maxR, maxR * 0.65, 0, 0, Math.PI * 2);
+            ctx.fillStyle = isDarkMode ? (group[0].orig.color + "15") : (group[0].orig.color + "12");
+            ctx.fill();
+            ctx.strokeStyle = isDarkMode ? (group[0].orig.color + "40") : (group[0].orig.color + "50");
+            ctx.lineWidth = 1.2;
+            ctx.setLineDash([4, 6]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
+        }
+      }
+
+      // Sort by depth
+      projectedNodes.sort(function(a, b) { return a.depth - b.depth; });
+
+      // Draw Vertical Drop-Lines and Floor Shadows
+      for (var s = 0; s < projectedNodes.length; s++) {
+        var item = projectedNodes[s];
+
+        // Soft floor shadow
+        ctx.beginPath();
+        ctx.ellipse(item.floorX, item.floorY, 5 * item.scale, 2.5 * item.scale, 0, 0, Math.PI * 2);
+        ctx.fillStyle = isDarkMode ? "rgba(0, 0, 0, 0.4)" : "rgba(0, 0, 0, 0.12)";
+        ctx.fill();
+
+        // Dotted drop-line
+        ctx.beginPath();
+        ctx.moveTo(item.x, item.y);
+        ctx.lineTo(item.floorX, item.floorY);
+        ctx.strokeStyle = isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(38, 36, 34, 0.16)";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      // Draw Laser Distance Ruler Measurement Line
+      if (selectedNodeA !== null && selectedNodeB !== null) {
+        var nodeAProj = null, nodeBProj = null;
+        for (var p = 0; p < projectedNodes.length; p++) {
+          if (projectedNodes[p].orig.id === selectedNodeA.id) nodeAProj = projectedNodes[p];
+          if (projectedNodes[p].orig.id === selectedNodeB.id) nodeBProj = projectedNodes[p];
+        }
+
+        if (nodeAProj && nodeBProj) {
+          ctx.beginPath();
+          ctx.moveTo(nodeAProj.x, nodeAProj.y);
+          ctx.lineTo(nodeBProj.x, nodeBProj.y);
+          ctx.strokeStyle = "#e11d48";
+          ctx.lineWidth = 2.5;
+          ctx.setLineDash([6, 4]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          var midX = (nodeAProj.x + nodeBProj.x) / 2;
+          var midY = (nodeAProj.y + nodeBProj.y) / 2;
+          var sim = cosineSimilarity(selectedNodeA.vec, selectedNodeB.vec);
+          ctx.fillStyle = isDarkMode ? "#ffffff" : "#be123c";
+          ctx.font = "bold 11px monospace";
+          ctx.shadowColor = isDarkMode ? "#000000" : "#ffffff";
+          ctx.shadowBlur = 5;
+          ctx.fillText("Sim: " + sim.toFixed(3), midX + 6, midY - 6);
+          ctx.shadowBlur = 0;
+        }
+      }
+
+      // Draw 3D Shaded Spheres and Crisp Labels
+      for (var j = 0; j < projectedNodes.length; j++) {
+        var node = projectedNodes[j];
+        var isHovered = (hoveredIndex === node.index);
+        var isSelected = (selectedNodeA && selectedNodeA.id === node.orig.id) || (selectedNodeB && selectedNodeB.id === node.orig.id);
+        var radius = (node.orig.isCustom ? 8 : 6.5) * node.scale;
+        if (isHovered || isSelected) radius *= 1.45;
+
+        // Outer glow halo
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, radius + 4, 0, Math.PI * 2);
+        ctx.fillStyle = isSelected 
+          ? "rgba(225, 29, 72, 0.25)" 
+          : (node.orig.isCustom ? "rgba(217, 119, 6, 0.25)" : (isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.05)"));
+        ctx.fill();
+
+        // 3D Sphere Radial Gradient (Polished shine)
+        var grad = ctx.createRadialGradient(
+          node.x - radius * 0.3, node.y - radius * 0.3, radius * 0.1,
+          node.x, node.y, radius
+        );
+        grad.addColorStop(0, "#ffffff");
+        grad.addColorStop(0.35, isSelected ? "#e11d48" : node.orig.color);
+        grad.addColorStop(1, isDarkMode ? "#000000" : "#1e293b");
+
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // High-contrast clean outline
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = isSelected 
+          ? "#e11d48" 
+          : (isHovered ? (isDarkMode ? "#ffffff" : "#0f172a") : (isDarkMode ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.9)"));
+        ctx.stroke();
+
+        // High-legibility text label
+        ctx.font = (node.orig.isCustom || isSelected ? "bold 11.5px " : "11px ") + "system-ui, -apple-system, sans-serif";
+        ctx.fillStyle = isSelected ? "#be123c" : (isHovered ? (isDarkMode ? "#ffffff" : "#0f172a") : (isDarkMode ? "#f1f5f9" : "#1e293b"));
+
+        // White shadow behind text in light mode guarantees sharp readability
+        ctx.shadowColor = isDarkMode ? "rgba(0, 0, 0, 0.9)" : "rgba(255, 255, 255, 0.95)";
+        ctx.shadowBlur = 4;
+        var labelSnippet = node.orig.text.length > 26 ? node.orig.text.slice(0, 24) + "…" : node.orig.text;
+        ctx.fillText(labelSnippet, node.x + radius + 6, node.y + 4);
+        ctx.shadowBlur = 0;
+      }
+
+      // Draw Mini Orientation Gizmo
+      drawOrientationGizmo(ctx, w);
+
+      ctx.restore();
+    }
+
+    // -------------------------------------------------------------
+    // 60FPS ANIMATION LOOP & SMOOTH INTERACTIVITY
+    // -------------------------------------------------------------
+
+    // WHAT THIS DOES: Continuously updates the frame at 60 frames per second,
+    // applying smooth idle auto-rotation and momentum physics.
+    function animationLoop() {
+      requestAnimationFrame(animationLoop);
+
+      if (!isDragging) {
+        if (autoRotate) {
+          rotY += 0.0025;
+        }
+        rotY += velY;
+        rotX += velX;
+        velY *= 0.92;
+        velX *= 0.92;
+      }
+
+      draw3DSpace();
+    }
+
+    // -------------------------------------------------------------
+    // MOUSE & TOUCH EVENT LISTENERS (Drag, Zoom, Tooltips, Laser Ruler)
+    // -------------------------------------------------------------
+    var canvasWrap = document.getElementById("canvas-wrap");
+    var tooltip = document.getElementById("canvas-tooltip");
+    var dragMoved = false;
+
+    // WHAT THIS DOES: Captures mouse drag gestures to smoothly rotate the 3D space.
+    canvasWrap.addEventListener("mousedown", function(e) {
+      isDragging = true;
+      dragMoved = false;
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+      velX = 0;
+      velY = 0;
+    });
+
+    window.addEventListener("mouseup", function() {
+      isDragging = false;
+    });
+
+    // WHAT THIS DOES: Handles node clicks for the Laser Distance Ruler measurement.
+    canvasWrap.addEventListener("click", function(e) {
+      if (dragMoved) return;
+
+      var rect = canvasWrap.getBoundingClientRect();
+      var mouseX = e.clientX - rect.left;
+      var mouseY = e.clientY - rect.top;
+      var w = rect.width;
+      var h = rect.height;
+      var cx = w / 2;
+      var cy = h / 2 + 10;
+
+      for (var i = 0; i < plottedPoints.length; i++) {
+        var pt = plottedPoints[i];
+        var proj = project3D(pt.x * 90, pt.y * 75, pt.z * 90, cx, cy);
+        var dist = Math.hypot(mouseX - proj.x, mouseY - proj.y);
+
+        if (dist < 16) {
+          if (!selectedNodeA) {
+            selectedNodeA = pt;
+            var banner = document.getElementById("ruler-banner");
+            banner.innerHTML = "<div><span>📍 <strong>Point A Selected:</strong> \"" + pt.text + "\". Now click a second point to measure!</span></div>" +
+                               "<button class='canvas-mini-btn' onclick='clearRulerSelection()'>Cancel</button>";
+          } else if (!selectedNodeB && pt.id !== selectedNodeA.id) {
+            selectedNodeB = pt;
+            var sim = cosineSimilarity(selectedNodeA.vec, selectedNodeB.vec);
+            var dx = selectedNodeA.x - selectedNodeB.x;
+            var dy = selectedNodeA.y - selectedNodeB.y;
+            var dz = selectedNodeA.z - selectedNodeB.z;
+            var euc = Math.sqrt(dx*dx + dy*dy + dz*dz);
+            var pct = Math.round(sim * 100);
+
+            var banner = document.getElementById("ruler-banner");
+            banner.innerHTML = "<div><span>📏 <strong>Distance Measured:</strong> Cosine Similarity: <strong>" + sim.toFixed(3) + " (" + pct + "%)</strong> | 3D Spatial Distance: <strong>" + euc.toFixed(2) + "</strong></span></div>" +
+                               "<button class='canvas-mini-btn' onclick='clearRulerSelection()'>Reset Measurement</button>";
+          } else {
+            selectedNodeA = pt;
+            selectedNodeB = null;
+          }
+          break;
+        }
+      }
+    });
+
+    window.addEventListener("mousemove", function(e) {
+      var rect = canvasWrap.getBoundingClientRect();
+      var mouseX = e.clientX - rect.left;
+      var mouseY = e.clientY - rect.top;
+
+      if (isDragging) {
+        var dx = e.clientX - lastMouseX;
+        var dy = e.clientY - lastMouseY;
+
+        if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+          dragMoved = true;
+        }
+
+        velY = dx * 0.005;
+        velX = dy * 0.005;
+
+        rotY += velY;
+        rotX += velX;
+
+        rotX = Math.max(-1.3, Math.min(1.3, rotX));
+
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+        tooltip.style.display = "none";
+        return;
+      }
+
+      var foundHover = -1;
+      var w = rect.width;
+      var h = rect.height;
+      var cx = w / 2;
+      var cy = h / 2 + 10;
+
+      for (var i = 0; i < plottedPoints.length; i++) {
+        var pt = plottedPoints[i];
+        var proj = project3D(pt.x * 90, pt.y * 75, pt.z * 90, cx, cy);
+        var dist = Math.hypot(mouseX - proj.x, mouseY - proj.y);
+
+        if (dist < 14) {
+          foundHover = i;
+          tooltip.style.display = "block";
+          tooltip.style.left = (proj.x + 16) + "px";
+          tooltip.style.top = (proj.y - 12) + "px";
+          tooltip.innerHTML = "<div style='font-weight:700; color:" + pt.color + "; margin-bottom:4px;'>" + pt.category + "</div>" +
+                              "<div>\"" + pt.text + "\"</div>" +
+                              "<div style='font-size:10px; color:" + (isDarkMode ? "#94a3b8" : "#64748b") + "; margin-top:4px;'>Coords: X:" + pt.x.toFixed(2) + ", Y:" + pt.y.toFixed(2) + ", Z:" + pt.z.toFixed(2) + "</div>";
+          break;
+        }
+      }
+
+      hoveredIndex = foundHover;
+      if (foundHover === -1) {
+        tooltip.style.display = "none";
+      }
+    });
+
+    // WHAT THIS DOES: Handles mouse wheel scrolling to smoothly zoom in and out of the 3D space.
+    canvasWrap.addEventListener("wheel", function(e) {
+      e.preventDefault();
+      cameraZoom += e.deltaY * -0.0012;
+      cameraZoom = Math.max(0.6, Math.min(2.4, cameraZoom));
+    }, { passive: false });
+
+    // WHAT THIS DOES: Adjusts the canvas viewport whenever the browser window resizes.
+    window.addEventListener("resize", function() {
+      draw3DSpace();
+    });
+
+    // -------------------------------------------------------------
+    // INITIALIZATION ON PAGE LOAD
+    // -------------------------------------------------------------
+
+    // WHAT THIS DOES: Initializes vocabulary, plots sentences, and launches the 60fps render loop.
+    window.onload = function() {
+      buildVocabulary();
+      plotSentencesInSpace();
+      animationLoop();
+    };
+  </script>
+
+</body>
+</html>
